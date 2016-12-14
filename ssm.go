@@ -1,4 +1,4 @@
-package gosm
+package ssm
 
 import "fmt"
 
