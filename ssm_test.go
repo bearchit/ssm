@@ -17,9 +17,9 @@ func init() {
 func Reset() {
 	sm = New("a",
 		Events{
-			{"a-b", []string{"a"}, "b"},
-			{"a-loop", []string{"a"}, "a"},
-			{"b-c", []string{"b"}, "c"},
+			{"a-b", States{"a"}, "b"},
+			{"a-loop", States{"a"}, "a"},
+			{"b-c", States{"b"}, "c"},
 		},
 	)
 }

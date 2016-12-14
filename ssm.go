@@ -3,31 +3,31 @@ package gosm
 import "fmt"
 
 type StateMachine struct {
-	current     string
+	current     state
 	transitions transitions
 }
 
-type transitions map[node]string
+type state interface{}
+type States []state
 
-type event struct {
-	from string
-	to   string
-}
+type event interface{}
+
+type transitions map[node]event
 
 type node struct {
-	event string
-	from  string
+	event event
+	from  state
 }
 
 type eventDesc struct {
-	Event string
-	From  []string
-	To    string
+	Event event
+	From  States
+	To    state
 }
 
 type Events []eventDesc
 
-func New(initial string, events Events) *StateMachine {
+func New(initial state, events Events) *StateMachine {
 	sm := StateMachine{
 		current:     initial,
 		transitions: make(transitions),
@@ -42,11 +42,11 @@ func New(initial string, events Events) *StateMachine {
 	return &sm
 }
 
-func (sm *StateMachine) Current() string {
+func (sm *StateMachine) Current() state {
 	return sm.current
 }
 
-func (sm *StateMachine) Event(event string, args ...interface{}) error {
+func (sm *StateMachine) Event(event event, args ...interface{}) error {
 	dst, ok := sm.transitions[node{event, sm.Current()}]
 	if !ok {
 		return fmt.Errorf("Invalid transition: current: %s, event: %s", event, sm.Current())
@@ -60,11 +60,11 @@ func (sm *StateMachine) Event(event string, args ...interface{}) error {
 	return nil
 }
 
-func (sm *StateMachine) Can(event string) bool {
+func (sm *StateMachine) Can(event event) bool {
 	_, ok := sm.transitions[node{event, sm.current}]
 	return ok
 }
 
-func (sm *StateMachine) Cannot(event string) bool {
+func (sm *StateMachine) Cannot(event event) bool {
 	return !sm.Can(event)
 }
