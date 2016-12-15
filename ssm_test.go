@@ -18,8 +18,10 @@ func Reset() {
 	sm = New("a",
 		Events{
 			{"a-b", States{"a"}, "b"},
-			{"a-loop", States{"a"}, "a"},
 			{"b-c", States{"b"}, "c"},
+		},
+		LoopEvents{
+			{"loop", States{"a", "b"}},
 		},
 	)
 }
@@ -50,6 +52,12 @@ func TestLoopTransition(t *testing.T) {
 
 	Reset()
 
-	assert.NoError(sm.Event("a-loop"))
+	assert.NoError(sm.Event("loop"))
 	assert.Equal("a", sm.Current())
+
+	assert.NoError(sm.Event("a-b"))
+	assert.Equal("b", sm.Current())
+
+	assert.NoError(sm.Event("loop"))
+	assert.Equal("b", sm.Current())
 }

@@ -1,6 +1,6 @@
 package ssm
 
-import "fmt"
+import "errors"
 
 type StateMachine struct {
 	current     state
@@ -27,7 +27,18 @@ type eventDesc struct {
 
 type Events []eventDesc
 
-func New(initial state, events Events) *StateMachine {
+type loopEvent struct {
+	Event event
+	Stay  States
+}
+
+type LoopEvents []loopEvent
+
+var (
+	ErrInvalidTransition = errors.New("Invalid transition")
+)
+
+func New(initial state, events Events, loopEvents LoopEvents) *StateMachine {
 	sm := StateMachine{
 		current:     initial,
 		transitions: make(transitions),
@@ -36,6 +47,12 @@ func New(initial state, events Events) *StateMachine {
 	for _, e := range events {
 		for _, from := range e.From {
 			sm.transitions[node{e.Event, from}] = e.To
+		}
+	}
+
+	for _, e := range loopEvents {
+		for _, stay := range e.Stay {
+			sm.transitions[node{e.Event, stay}] = stay
 		}
 	}
 
@@ -49,7 +66,7 @@ func (sm *StateMachine) Current() state {
 func (sm *StateMachine) Event(event event, args ...interface{}) error {
 	dst, ok := sm.transitions[node{event, sm.Current()}]
 	if !ok {
-		return fmt.Errorf("Invalid transition: current: %s, event: %s", event, sm.Current())
+		return ErrInvalidTransition
 	}
 
 	if dst == sm.Current() {
