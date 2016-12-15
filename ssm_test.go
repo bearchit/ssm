@@ -3,6 +3,8 @@ package ssm
 import (
 	"testing"
 
+	"fmt"
+
 	testify "github.com/stretchr/testify/assert"
 )
 
@@ -22,6 +24,24 @@ func Reset() {
 		},
 		LoopEvents{
 			{"loop", States{"a", "b"}},
+		},
+		Callbacks{
+			{"before_a-b", func(args ...interface{}) error {
+				fmt.Println("before_a-b")
+				return nil
+			}},
+			{"after_a-b", func(args ...interface{}) error {
+				fmt.Println("after_a-b")
+				return nil
+			}},
+			{"enter_b", func(args ...interface{}) error {
+				fmt.Println("enter_b")
+				return nil
+			}},
+			{"leave_b", func(args ...interface{}) error {
+				fmt.Println("leave_b")
+				return nil
+			}},
 		},
 	)
 }
