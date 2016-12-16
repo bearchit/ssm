@@ -5,6 +5,8 @@ import (
 
 	"fmt"
 
+	"reflect"
+
 	testify "github.com/stretchr/testify/assert"
 )
 
@@ -16,29 +18,44 @@ func init() {
 	Reset()
 }
 
+type State string
+type Event string
+
+const (
+	EventAtoB Event = "a-b"
+	EventBtoC Event = "b-c"
+	EventLoop Event = "loop"
+
+	StateA State = "a"
+	StateB State = "b"
+	StateC State = "c"
+)
+
 func Reset() {
-	sm = New("a",
+	sm = New(StateA,
 		Events{
-			{"a-b", States{"a"}, "b"},
-			{"b-c", States{"b"}, "c"},
+			{EventAtoB, States{StateA}, StateB},
+			{EventBtoC, States{StateB}, StateC},
 		},
 		LoopEvents{
-			{"loop", States{"a", "b"}},
+			{EventLoop, States{StateA, StateB}},
 		},
-		Callbacks{
-			{"before_a-b", func(args ...interface{}) error {
+		EventCallbacks{
+			{Type: Before, Event: EventAtoB, Callback: func(args ...interface{}) error {
 				fmt.Println("before_a-b")
 				return nil
 			}},
-			{"after_a-b", func(args ...interface{}) error {
+			{Type: After, Event: EventAtoB, Callback: func(args ...interface{}) error {
 				fmt.Println("after_a-b")
 				return nil
 			}},
-			{"enter_b", func(args ...interface{}) error {
+		},
+		StateCallbacks{
+			{Type: Enter, State: StateB, Callback: func(args ...interface{}) error {
 				fmt.Println("enter_b")
 				return nil
 			}},
-			{"leave_b", func(args ...interface{}) error {
+			{Type: Leave, State: StateB, Callback: func(args ...interface{}) error {
 				fmt.Println("leave_b")
 				return nil
 			}},
@@ -51,8 +68,8 @@ func TestCan(t *testing.T) {
 
 	Reset()
 
-	assert.True(sm.Can("a-b"))
-	assert.False(sm.Can("b-c"))
+	assert.True(sm.Can(EventAtoB))
+	assert.False(sm.Can(EventBtoC))
 }
 
 func TestTransition(t *testing.T) {
@@ -60,11 +77,11 @@ func TestTransition(t *testing.T) {
 
 	Reset()
 
-	assert.NoError(sm.Event("a-b"))
-	assert.Equal("b", sm.Current())
+	assert.NoError(sm.Event(EventAtoB))
+	assert.Equal(StateB, sm.Current())
 
-	assert.NoError(sm.Event("b-c"))
-	assert.Equal("c", sm.Current())
+	assert.NoError(sm.Event(EventBtoC))
+	assert.Equal(StateC, sm.Current())
 }
 
 func TestLoopTransition(t *testing.T) {
@@ -72,12 +89,23 @@ func TestLoopTransition(t *testing.T) {
 
 	Reset()
 
-	assert.NoError(sm.Event("loop"))
-	assert.Equal("a", sm.Current())
+	assert.NoError(sm.Event(EventLoop))
+	assert.Equal(StateA, sm.Current())
 
-	assert.NoError(sm.Event("a-b"))
-	assert.Equal("b", sm.Current())
+	assert.NoError(sm.Event(EventAtoB))
+	assert.Equal(StateB, sm.Current())
 
-	assert.NoError(sm.Event("loop"))
-	assert.Equal("b", sm.Current())
+	assert.NoError(sm.Event(EventLoop))
+	assert.Equal(StateB, sm.Current())
+}
+
+func TestCustomTypeEquality(t *testing.T) {
+	assert := testify.New(t)
+
+	assert.NotEqual(StateA, "a")
+	assert.Equal(StateA, State("a"))
+
+	for k := range sm.cbEvent[Before] {
+		t.Log(reflect.TypeOf(k))
+	}
 }

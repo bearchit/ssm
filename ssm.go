@@ -1,9 +1,6 @@
 package ssm
 
-import (
-	"fmt"
-	"regexp"
-)
+import "fmt"
 
 type StateMachine struct {
 	current     state
@@ -17,7 +14,7 @@ type States []state
 
 type event interface{}
 
-type transitions map[node]event
+type transitions map[node]state
 
 type node struct {
 	event event
@@ -41,22 +38,34 @@ type LoopEvents []loopDesc
 
 type callbackFn func(...interface{}) error
 
-type eventCallbacks map[string]map[event]callbackFn
-type stateCallbacks map[string]map[state]callbackFn
+type eventCallbacks map[int]map[event]callbackFn
+type stateCallbacks map[int]map[state]callbackFn
 
-type callbackDesc struct {
-	Name     string
+type eventCallbackDesc struct {
+	Type     int
+	Event    event
 	Callback callbackFn
 }
 
-type Callbacks []callbackDesc
+type stateCallbackDesc struct {
+	Type     int
+	State    state
+	Callback callbackFn
+}
 
-var (
-	patternEventCallback = regexp.MustCompile(`(before|after)_(.+)`)
-	patternStateCallback = regexp.MustCompile(`(enter|leave)_(.+)`)
+type EventCallbacks []eventCallbackDesc
+type StateCallbacks []stateCallbackDesc
+
+const (
+	Before = iota
+	After
+	Enter
+	Leave
 )
 
-func New(initial state, events Events, loopEvents LoopEvents, callbacks Callbacks) *StateMachine {
+func New(initial state, events Events, loopEvents LoopEvents,
+	ecb EventCallbacks, scb StateCallbacks) *StateMachine {
+
 	sm := StateMachine{
 		current:     initial,
 		transitions: make(transitions),
@@ -76,22 +85,18 @@ func New(initial state, events Events, loopEvents LoopEvents, callbacks Callback
 		}
 	}
 
-	for _, cb := range callbacks {
-		r := patternEventCallback.FindStringSubmatch(cb.Name)
-		if len(r) == 3 {
-			if sm.cbEvent[r[1]] == nil {
-				sm.cbEvent[r[1]] = make(map[event]callbackFn)
-			}
-			sm.cbEvent[r[1]][r[2]] = cb.Callback
-		} else {
-			r := patternStateCallback.FindStringSubmatch(cb.Name)
-			if len(r) == 3 {
-				if sm.cbState[r[1]] == nil {
-					sm.cbState[r[1]] = make(map[state]callbackFn)
-				}
-				sm.cbState[r[1]][r[2]] = cb.Callback
-			}
+	for _, cb := range ecb {
+		if sm.cbEvent[cb.Type] == nil {
+			sm.cbEvent[cb.Type] = make(map[event]callbackFn)
 		}
+		sm.cbEvent[cb.Type][cb.Event] = cb.Callback
+	}
+
+	for _, cb := range scb {
+		if sm.cbState[cb.Type] == nil {
+			sm.cbState[cb.Type] = make(map[state]callbackFn)
+		}
+		sm.cbState[cb.Type][cb.State] = cb.Callback
 	}
 
 	return &sm
@@ -101,25 +106,25 @@ func (sm *StateMachine) Current() state {
 	return sm.current
 }
 
-func (sm *StateMachine) Event(event event, args ...interface{}) error {
-	dst, ok := sm.transitions[node{event, sm.Current()}]
+func (sm *StateMachine) Event(e event, args ...interface{}) error {
+	dst, ok := sm.transitions[node{e, sm.Current()}]
 	if !ok {
-		return fmt.Errorf("Invalid transition current: %s, action: %s", sm.Current(), event)
+		return fmt.Errorf("Invalid transition current: %s, action: %s", sm.Current(), e)
 	}
 
-	if cb, ok := sm.cbEvent["before"][event]; ok {
+	if cb, ok := sm.cbEvent[Before][e]; ok {
 		if err := cb(args...); err != nil {
 			return err
 		}
 	}
 
-	if cb, ok := sm.cbState["enter"][dst]; ok {
+	if cb, ok := sm.cbState[Enter][dst]; ok {
 		if err := cb(args...); err != nil {
 			return err
 		}
 	}
 
-	if cb, ok := sm.cbState["leave"][sm.Current()]; ok {
+	if cb, ok := sm.cbState[Leave][sm.Current()]; ok {
 		if err := cb(args...); err != nil {
 			return err
 		}
@@ -131,7 +136,7 @@ func (sm *StateMachine) Event(event event, args ...interface{}) error {
 
 	sm.current = dst
 
-	if cb, ok := sm.cbEvent["after"][event]; ok {
+	if cb, ok := sm.cbEvent[After][e]; ok {
 		if err := cb(args...); err != nil {
 			return err
 		}
