@@ -1,7 +1,5 @@
 package ssm
 
-import "fmt"
-
 type StateMachine struct {
 	current     state
 	transitions transitions
@@ -109,7 +107,7 @@ func (sm *StateMachine) Current() state {
 func (sm *StateMachine) Event(e event, args ...interface{}) error {
 	dst, ok := sm.transitions[node{e, sm.Current()}]
 	if !ok {
-		return fmt.Errorf("Invalid transition current: %s, action: %s", sm.Current(), e)
+		return &InvalidTransitionError{Event: e, From: sm.Current()}
 	}
 
 	if cb, ok := sm.cbEvent[Before][e]; ok {
