@@ -145,11 +145,34 @@ func (sm *StateMachine) Event(e event, args ...interface{}) error {
 	return nil
 }
 
-func (sm *StateMachine) Can(event event) bool {
-	_, ok := sm.transitions[node{event, sm.current}]
-	return ok
+// TODO: Callback, Condition 구분 필요
+func (sm *StateMachine) Can(e event, args ...interface{}) bool {
+	dst, ok := sm.transitions[node{e, sm.Current()}]
+	if !ok {
+		return false
+	}
+
+	if cb, ok := sm.cbEvent[Before][e]; ok {
+		if err := cb(args...); err != nil {
+			return false
+		}
+	}
+
+	if cb, ok := sm.cbState[Enter][dst]; ok {
+		if err := cb(args...); err != nil {
+			return false
+		}
+	}
+
+	if cb, ok := sm.cbState[Leave][sm.Current()]; ok {
+		if err := cb(args...); err != nil {
+			return false
+		}
+	}
+
+	return true
 }
 
-func (sm *StateMachine) Cannot(event event) bool {
-	return !sm.Can(event)
+func (sm *StateMachine) Cannot(e event, args ...interface{}) bool {
+	return !sm.Can(e, args...)
 }

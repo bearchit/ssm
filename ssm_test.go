@@ -47,9 +47,6 @@ func Reset() {
 		EventCallbacks{
 			{Type: Before, Event: EventAtoB, Callback: func(args ...interface{}) error {
 				fmt.Println("before_a-b")
-				if len(args) > 0 {
-					fmt.Println(args[0].(Info).Message)
-				}
 				return nil
 			}},
 			{Type: After, Event: EventAtoB, Callback: func(args ...interface{}) error {
