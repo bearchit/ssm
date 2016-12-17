@@ -31,6 +31,10 @@ const (
 	StateC State = "c"
 )
 
+type Info struct {
+	Message string
+}
+
 func Reset() {
 	sm = New(StateA,
 		Events{
@@ -43,6 +47,9 @@ func Reset() {
 		EventCallbacks{
 			{Type: Before, Event: EventAtoB, Callback: func(args ...interface{}) error {
 				fmt.Println("before_a-b")
+				if len(args) > 0 {
+					fmt.Println(args[0].(Info).Message)
+				}
 				return nil
 			}},
 			{Type: After, Event: EventAtoB, Callback: func(args ...interface{}) error {
@@ -77,7 +84,7 @@ func TestTransition(t *testing.T) {
 
 	Reset()
 
-	assert.NoError(sm.Event(EventAtoB))
+	assert.NoError(sm.Event(EventAtoB, Info{Message: "Hello"}))
 	assert.Equal(StateB, sm.Current())
 
 	assert.NoError(sm.Event(EventBtoC))
