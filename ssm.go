@@ -1,34 +1,34 @@
 package ssm
 
 type StateMachine struct {
-	current     state
+	current     State
 	transitions transitions
 	cbEvent     eventCallbacks
 	cbState     stateCallbacks
 }
 
-type state interface{}
-type States []state
+type State interface{}
+type States []State
 
-type event interface{}
+type Event interface{}
 
-type transitions map[node]state
+type transitions map[node]State
 
 type node struct {
-	event event
-	from  state
+	event Event
+	from  State
 }
 
 type eventDesc struct {
-	Event event
+	Event Event
 	From  States
-	To    state
+	To    State
 }
 
 type Events []eventDesc
 
 type loopDesc struct {
-	Event event
+	Event Event
 	Stay  States
 }
 
@@ -36,18 +36,18 @@ type LoopEvents []loopDesc
 
 type callbackFn func(...interface{}) error
 
-type eventCallbacks map[int]map[event]callbackFn
-type stateCallbacks map[int]map[state]callbackFn
+type eventCallbacks map[int]map[Event]callbackFn
+type stateCallbacks map[int]map[State]callbackFn
 
 type eventCallbackDesc struct {
 	Type     int
-	Event    event
+	Event    Event
 	Callback callbackFn
 }
 
 type stateCallbackDesc struct {
 	Type     int
-	State    state
+	State    State
 	Callback callbackFn
 }
 
@@ -61,7 +61,7 @@ const (
 	Leave
 )
 
-func New(initial state, events Events, loopEvents LoopEvents,
+func New(initial State, events Events, loopEvents LoopEvents,
 	ecb EventCallbacks, scb StateCallbacks) *StateMachine {
 
 	sm := StateMachine{
@@ -85,14 +85,14 @@ func New(initial state, events Events, loopEvents LoopEvents,
 
 	for _, cb := range ecb {
 		if sm.cbEvent[cb.Type] == nil {
-			sm.cbEvent[cb.Type] = make(map[event]callbackFn)
+			sm.cbEvent[cb.Type] = make(map[Event]callbackFn)
 		}
 		sm.cbEvent[cb.Type][cb.Event] = cb.Callback
 	}
 
 	for _, cb := range scb {
 		if sm.cbState[cb.Type] == nil {
-			sm.cbState[cb.Type] = make(map[state]callbackFn)
+			sm.cbState[cb.Type] = make(map[State]callbackFn)
 		}
 		sm.cbState[cb.Type][cb.State] = cb.Callback
 	}
@@ -100,11 +100,11 @@ func New(initial state, events Events, loopEvents LoopEvents,
 	return &sm
 }
 
-func (sm *StateMachine) Current() state {
+func (sm *StateMachine) Current() State {
 	return sm.current
 }
 
-func (sm *StateMachine) Event(e event, args ...interface{}) error {
+func (sm *StateMachine) Event(e Event, args ...interface{}) error {
 	dst, ok := sm.transitions[node{e, sm.Current()}]
 	if !ok {
 		return &InvalidTransitionError{Event: e, From: sm.Current()}
@@ -144,7 +144,7 @@ func (sm *StateMachine) Event(e event, args ...interface{}) error {
 }
 
 // TODO: Callback, Condition 구분 필요
-func (sm *StateMachine) Can(e event, args ...interface{}) (bool, error) {
+func (sm *StateMachine) Can(e Event, args ...interface{}) (bool, error) {
 	dst, ok := sm.transitions[node{e, sm.Current()}]
 	if !ok {
 		return false, &InvalidTransitionError{Event: e, From: sm.Current()}

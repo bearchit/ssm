@@ -3,8 +3,8 @@ package ssm
 import "fmt"
 
 type InvalidTransitionError struct {
-	Event event
-	From  state
+	Event Event
+	From  State
 }
 
 func (e *InvalidTransitionError) Error() string {
