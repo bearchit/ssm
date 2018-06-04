@@ -36,34 +36,49 @@ type Info struct {
 }
 
 func Reset() {
-	sm = New(StateA,
-		Events{
-			{EventAtoB, States{StateA}, StateB},
-			{EventBtoC, States{StateB}, StateC},
-		},
-		LoopEvents{
-			{EventLoop, States{StateA, StateB}},
-		},
-		EventCallbacks{
-			{Type: Before, Event: EventAtoB, Callback: func(current State, args ...interface{}) error {
-				fmt.Printf("before_a-b: %v\n", current)
+	sm = New(
+		WithInitial(StateA),
+		WithEvents(
+			Events{
+				{EventAtoB, States{StateA}, StateB},
+				{EventBtoC, States{StateB}, StateC},
+			},
+		),
+		WithLoops(
+			LoopEvents{
+				{EventLoop, States{StateA, StateB}},
+			},
+		),
+		WithEventCallbacks(
+			EventCallbacks{
+				{Type: Before, Event: EventAtoB, Callback: func(current State, args ...interface{}) error {
+					fmt.Printf("before_a-b: %v\n", current)
+					return nil
+				}},
+				{Type: After, Event: EventAtoB, Callback: func(current State, args ...interface{}) error {
+					fmt.Printf("after_a-b: %v\n", current)
+					return nil
+				}},
+			},
+		),
+		WithStateCallbacks(
+			StateCallbacks{
+				{Type: Enter, State: StateB, Callback: func(current State, args ...interface{}) error {
+					fmt.Printf("enter_b: %v\n", current)
+					return nil
+				}},
+				{Type: Leave, State: StateB, Callback: func(current State, args ...interface{}) error {
+					fmt.Printf("leave_b: %v\n", current)
+					return nil
+				}},
+			},
+		),
+		WithAfterCallback(
+			func(current State, args ...interface{}) error {
+				fmt.Println(current)
 				return nil
-			}},
-			{Type: After, Event: EventAtoB, Callback: func(current State, args ...interface{}) error {
-				fmt.Printf("after_a-b: %v\n", current)
-				return nil
-			}},
-		},
-		StateCallbacks{
-			{Type: Enter, State: StateB, Callback: func(current State, args ...interface{}) error {
-				fmt.Printf("enter_b: %v\n", current)
-				return nil
-			}},
-			{Type: Leave, State: StateB, Callback: func(current State, args ...interface{}) error {
-				fmt.Printf("leave_b: %v\n", current)
-				return nil
-			}},
-		},
+			},
+		),
 	)
 }
 
