@@ -18,17 +18,17 @@ func init() {
 	Reset()
 }
 
-type State string
-type Event string
+type state string
+type event string
 
 const (
-	EventAtoB Event = "a-b"
-	EventBtoC Event = "b-c"
-	EventLoop Event = "loop"
+	EventAtoB event = "a-b"
+	EventBtoC event = "b-c"
+	EventLoop event = "loop"
 
-	StateA State = "a"
-	StateB State = "b"
-	StateC State = "c"
+	StateA state = "a"
+	StateB state = "b"
+	StateC state = "c"
 )
 
 type Info struct {
@@ -45,22 +45,22 @@ func Reset() {
 			{EventLoop, States{StateA, StateB}},
 		},
 		EventCallbacks{
-			{Type: Before, Event: EventAtoB, Callback: func(args ...interface{}) error {
-				fmt.Println("before_a-b")
+			{Type: Before, Event: EventAtoB, Callback: func(current State, args ...interface{}) error {
+				fmt.Printf("before_a-b: %v\n", current)
 				return nil
 			}},
-			{Type: After, Event: EventAtoB, Callback: func(args ...interface{}) error {
-				fmt.Println("after_a-b")
+			{Type: After, Event: EventAtoB, Callback: func(current State, args ...interface{}) error {
+				fmt.Printf("after_a-b: %v\n", current)
 				return nil
 			}},
 		},
 		StateCallbacks{
-			{Type: Enter, State: StateB, Callback: func(args ...interface{}) error {
-				fmt.Println("enter_b")
+			{Type: Enter, State: StateB, Callback: func(current State, args ...interface{}) error {
+				fmt.Printf("enter_b: %v\n", current)
 				return nil
 			}},
-			{Type: Leave, State: StateB, Callback: func(args ...interface{}) error {
-				fmt.Println("leave_b")
+			{Type: Leave, State: StateB, Callback: func(current State, args ...interface{}) error {
+				fmt.Printf("leave_b: %v\n", current)
 				return nil
 			}},
 		},
@@ -107,7 +107,7 @@ func TestCustomTypeEquality(t *testing.T) {
 	assert := testify.New(t)
 
 	assert.NotEqual(StateA, "a")
-	assert.Equal(StateA, State("a"))
+	assert.Equal(StateA, state("a"))
 
 	for k := range sm.cbEvent[Before] {
 		t.Log(reflect.TypeOf(k))

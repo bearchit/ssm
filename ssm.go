@@ -34,7 +34,7 @@ type loopDesc struct {
 
 type LoopEvents []loopDesc
 
-type callbackFn func(...interface{}) error
+type callbackFn func(current State, args ...interface{}) error
 
 type eventCallbacks map[int]map[Event]callbackFn
 type stateCallbacks map[int]map[State]callbackFn
@@ -111,19 +111,19 @@ func (sm *StateMachine) Event(e Event, args ...interface{}) error {
 	}
 
 	if cb, ok := sm.cbEvent[Before][e]; ok {
-		if err := cb(args...); err != nil {
+		if err := cb(sm.Current(), args...); err != nil {
 			return err
 		}
 	}
 
 	if cb, ok := sm.cbState[Enter][dst]; ok {
-		if err := cb(args...); err != nil {
+		if err := cb(sm.Current(), args...); err != nil {
 			return err
 		}
 	}
 
 	if cb, ok := sm.cbState[Leave][sm.Current()]; ok {
-		if err := cb(args...); err != nil {
+		if err := cb(sm.Current(), args...); err != nil {
 			return err
 		}
 	}
@@ -135,7 +135,7 @@ func (sm *StateMachine) Event(e Event, args ...interface{}) error {
 	sm.current = dst
 
 	if cb, ok := sm.cbEvent[After][e]; ok {
-		if err := cb(args...); err != nil {
+		if err := cb(sm.Current(), args...); err != nil {
 			return err
 		}
 	}
@@ -151,19 +151,19 @@ func (sm *StateMachine) Can(e Event, args ...interface{}) (bool, error) {
 	}
 
 	if cb, ok := sm.cbEvent[Before][e]; ok {
-		if err := cb(args...); err != nil {
+		if err := cb(sm.Current(), args...); err != nil {
 			return false, err
 		}
 	}
 
 	if cb, ok := sm.cbState[Enter][dst]; ok {
-		if err := cb(args...); err != nil {
+		if err := cb(sm.Current(), args...); err != nil {
 			return false, err
 		}
 	}
 
 	if cb, ok := sm.cbState[Leave][sm.Current()]; ok {
-		if err := cb(args...); err != nil {
+		if err := cb(sm.Current(), args...); err != nil {
 			return false, err
 		}
 	}
